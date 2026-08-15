@@ -3,26 +3,22 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/lib/auth-context';
-import { PERSONAL_DATA, SERVICES, RESOURCES } from '@/lib/constants';
+import { PERSONAL_DATA } from '@/lib/constants';
 import Navbar from '@/components/Navbar';
 import AuthModal from '@/components/AuthModal';
+import { generateRoiReportPdf } from '@/lib/generate-pdf';
 import { 
-  LayoutDashboard, 
   Sparkles, 
   Calendar, 
-  Clock, 
   Download, 
   FileText, 
   Calculator, 
-  ShieldCheck, 
   CheckCircle, 
   ArrowRight, 
-  User, 
   Lock,
-  ExternalLink,
-  Bot,
-  Zap,
-  TrendingUp
+  Building,
+  Check,
+  Printer
 } from 'lucide-react';
 
 export default function ClientDashboardPage() {
@@ -32,6 +28,9 @@ export default function ClientDashboardPage() {
   const [teamMembers, setTeamMembers] = useState(6);
   const [hoursPerDayManual, setHoursPerDayManual] = useState(2.5);
   const [hourlyCost, setHourlyCost] = useState(28);
+  const [customCompany, setCustomCompany] = useState('');
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+  const [pdfDownloaded, setPdfDownloaded] = useState(false);
 
   // Booking simulator state
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
@@ -40,6 +39,33 @@ export default function ClientDashboardPage() {
   // Calculations
   const weeklyHoursSaved = Math.round(teamMembers * hoursPerDayManual * 5 * 0.75);
   const annualSavings = Math.round(weeklyHoursSaved * hourlyCost * 48);
+
+  const handleDownloadRoiPdf = async () => {
+    if (!user) return;
+    setIsGeneratingPdf(true);
+    try {
+      // Simulate small delay for visual feedback if needed, then generate with jsPDF
+      await new Promise((resolve) => setTimeout(resolve, 300));
+      generateRoiReportPdf({
+        user: {
+          ...user,
+          company: customCompany.trim() || user.company || 'Empresa / Organización',
+        },
+        teamMembers,
+        hoursPerDayManual,
+        hourlyCost,
+        weeklyHoursSaved,
+        annualSavings,
+      });
+      setPdfDownloaded(true);
+      setTimeout(() => setPdfDownloaded(false), 4000);
+    } catch (err) {
+      console.error('Error generating ROI PDF with jsPDF', err);
+      alert('Hubo un error al generar el PDF. Por favor inténtalo de nuevo.');
+    } finally {
+      setIsGeneratingPdf(false);
+    }
+  };
 
   const availableSlots = [
     'Martes, 10:00 AM (CET)',
@@ -212,25 +238,82 @@ export default function ClientDashboardPage() {
               </div>
 
               {/* Calculation Result Box */}
-              <div className="p-5 rounded-2xl bg-slate-950 text-white grid grid-cols-2 gap-4">
-                <div>
-                  <span className="text-[11px] font-bold text-yellow-400 uppercase tracking-wider">
-                    Tiempo Ahorrado
-                  </span>
-                  <p className="text-2xl sm:text-3xl font-extrabold font-sora mt-0.5">
-                    +{weeklyHoursSaved}h
-                  </p>
-                  <p className="text-[11px] text-slate-400">semanales liberadas</p>
+              <div className="p-6 rounded-2xl bg-slate-950 text-white space-y-5">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <span className="text-[11px] font-bold text-yellow-400 uppercase tracking-wider">
+                      Tiempo Ahorrado
+                    </span>
+                    <p className="text-2xl sm:text-3xl font-extrabold font-sora mt-0.5">
+                      +{weeklyHoursSaved}h
+                    </p>
+                    <p className="text-[11px] text-slate-400">semanales liberadas ({(weeklyHoursSaved * 48).toLocaleString('es-ES')}h/año)</p>
+                  </div>
+
+                  <div>
+                    <span className="text-[11px] font-bold text-emerald-400 uppercase tracking-wider">
+                      Ahorro Estimado / Año
+                    </span>
+                    <p className="text-2xl sm:text-3xl font-extrabold font-sora mt-0.5 text-emerald-400">
+                      {annualSavings.toLocaleString('es-ES')} €
+                    </p>
+                    <p className="text-[11px] text-slate-400">en costes laborales directos</p>
+                  </div>
                 </div>
 
-                <div>
-                  <span className="text-[11px] font-bold text-emerald-400 uppercase tracking-wider">
-                    Ahorro Estimado / Año
-                  </span>
-                  <p className="text-2xl sm:text-3xl font-extrabold font-sora mt-0.5 text-emerald-400">
-                    {annualSavings.toLocaleString('es-ES')} €
+                {/* PDF Generation & Export Section */}
+                <div className="pt-4 border-t border-slate-800/90 space-y-3">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                    <div className="flex items-center gap-2">
+                      <FileText className="w-4 h-4 text-yellow-400 shrink-0" />
+                      <span className="text-xs font-semibold text-slate-200">
+                        Exportar Informe Ejecutivo Oficial
+                      </span>
+                    </div>
+
+                    <div className="relative w-full sm:w-auto">
+                      <div className="flex items-center gap-1.5 bg-slate-900 border border-slate-700/80 rounded-lg px-2.5 py-1">
+                        <Building className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                        <input
+                          type="text"
+                          value={customCompany}
+                          onChange={(e) => setCustomCompany(e.target.value)}
+                          placeholder={user.company || 'Nombre de tu empresa'}
+                          className="bg-transparent text-xs text-white placeholder-slate-500 focus:outline-hidden w-full sm:w-44"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row items-center gap-3">
+                    <button
+                      onClick={handleDownloadRoiPdf}
+                      disabled={isGeneratingPdf}
+                      id="download-roi-pdf-btn"
+                      className="w-full sm:flex-1 py-3 px-4 rounded-xl bg-yellow-400 hover:bg-yellow-300 text-slate-950 font-bold text-xs flex items-center justify-center gap-2 shadow-md transition-all active:scale-[0.99] disabled:opacity-50 cursor-pointer"
+                    >
+                      {isGeneratingPdf ? (
+                        <>
+                          <span className="w-4 h-4 border-2 border-slate-950/20 border-t-slate-950 rounded-full animate-spin" />
+                          <span>Generando documento PDF con jsPDF...</span>
+                        </>
+                      ) : pdfDownloaded ? (
+                        <>
+                          <Check className="w-4 h-4 text-emerald-800" />
+                          <span className="text-emerald-950 font-bold">¡PDF de ROI Descargado con Éxito!</span>
+                        </>
+                      ) : (
+                        <>
+                          <Download className="w-4 h-4" />
+                          <span>Descargar Reporte PDF del ROI (.pdf)</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+
+                  <p className="text-[10px] text-slate-400 flex items-center gap-1.5">
+                    <span>* Documento formal con desglose metodológico, comparativa de horas y hoja de ruta recomendada listo para presentar a dirección.</span>
                   </p>
-                  <p className="text-[11px] text-slate-400">en costes operativos</p>
                 </div>
               </div>
             </div>
@@ -247,6 +330,35 @@ export default function ClientDashboardPage() {
               </div>
 
               <div className="space-y-3">
+                {/* Dynamic ROI PDF Card inside toolkits */}
+                <div className="p-4 rounded-xl bg-yellow-400/10 border border-yellow-400/30 flex items-center justify-between gap-4">
+                  <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-yellow-400 text-slate-950 font-bold flex items-center justify-center shrink-0 mt-0.5">
+                      <FileText className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h4 className="text-xs font-bold text-slate-900">
+                          Informe de Impacto & ROI en PDF (Valores Actuales)
+                        </h4>
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-yellow-400 text-slate-950 uppercase tracking-wider">
+                          Dinámico
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-slate-600 mt-0.5">
+                        Reporte personalizado con {teamMembers} personas, +{weeklyHoursSaved}h/sem liberadas y {annualSavings.toLocaleString('es-ES')} €/año.
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={handleDownloadRoiPdf}
+                    disabled={isGeneratingPdf}
+                    className="p-2.5 rounded-lg bg-slate-950 hover:bg-slate-800 text-yellow-400 border border-slate-800 text-xs shrink-0 font-bold flex items-center gap-1.5 transition-colors shadow-xs"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    <span className="hidden sm:inline">Descargar PDF</span>
+                  </button>
+                </div>
                 <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between gap-4">
                   <div className="flex items-start gap-3">
                     <FileText className="w-5 h-5 text-slate-700 shrink-0 mt-0.5" />

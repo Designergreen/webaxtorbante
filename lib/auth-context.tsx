@@ -1,11 +1,12 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useSyncExternalStore, useMemo } from 'react';
 import { User, UserRole } from './types';
 
 interface AuthContextType {
   user: User | null;
   isLoading: boolean;
+  isMounted: boolean;
   login: (email: string, role?: UserRole) => Promise<void>;
   register: (name: string, email: string, company?: string) => Promise<void>;
   logout: () => void;
@@ -39,29 +40,56 @@ const PRESET_USERS: Record<UserRole, User> = {
   },
 };
 
+const STORAGE_KEY = 'axel_torbante_auth_user';
+
+function authSubscribe(callback: () => void) {
+  if (typeof window === 'undefined') return () => {};
+  window.addEventListener('storage', callback);
+  window.addEventListener('axel-auth-change', callback);
+  return () => {
+    window.removeEventListener('storage', callback);
+    window.removeEventListener('axel-auth-change', callback);
+  };
+}
+
+function getAuthSnapshot(): string | null {
+  if (typeof window === 'undefined') return null;
+  return localStorage.getItem(STORAGE_KEY);
+}
+
+function getAuthServerSnapshot(): string | null {
+  return null;
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        const stored = localStorage.getItem('axel_torbante_auth_user');
-        return stored ? JSON.parse(stored) : null;
-      } catch (e) {
-        console.error('Failed to parse user from localStorage', e);
-        return null;
-      }
+  const rawUserJson = useSyncExternalStore(
+    authSubscribe,
+    getAuthSnapshot,
+    getAuthServerSnapshot
+  );
+
+  const user: User | null = useMemo(() => {
+    if (!rawUserJson) return null;
+    try {
+      return JSON.parse(rawUserJson) as User;
+    } catch {
+      return null;
     }
-    return null;
-  });
-  const [isLoading, setIsLoading] = useState(false);
+  }, [rawUserJson]);
+
+  const isMounted = true;
+  const [isLoading] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [authModalMode, setAuthModalMode] = useState<'login' | 'register'>('login');
 
   const saveUser = (newUser: User | null) => {
-    setUser(newUser);
-    if (newUser) {
-      localStorage.setItem('axel_torbante_auth_user', JSON.stringify(newUser));
-    } else {
-      localStorage.removeItem('axel_torbante_auth_user');
+    if (typeof window !== 'undefined') {
+      if (newUser) {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(newUser));
+      } else {
+        localStorage.removeItem(STORAGE_KEY);
+      }
+      window.dispatchEvent(new Event('axel-auth-change'));
     }
   };
 
@@ -129,6 +157,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       value={{
         user,
         isLoading,
+        isMounted,
         login,
         register,
         logout,

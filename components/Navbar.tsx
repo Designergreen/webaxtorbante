@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
 import { PERSONAL_DATA } from '@/lib/constants';
 import { 
@@ -18,11 +17,12 @@ import {
 } from 'lucide-react';
 
 export default function Navbar() {
-  const { user, logout, openAuthModal, switchRole } = useAuth();
+  const { user, isMounted, logout, openAuthModal, switchRole } = useAuth();
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
-  const pathname = usePathname();
+
+  const currentUser = isMounted ? user : null;
 
   useEffect(() => {
     const handleScroll = () => {
@@ -92,7 +92,7 @@ export default function Navbar() {
                 id="role-switch-guest"
                 onClick={() => logout()}
                 className={`px-2 py-0.5 rounded text-[11px] font-medium transition-colors ${
-                  !user ? 'bg-slate-900 text-white' : 'text-slate-600 hover:text-slate-900'
+                  !currentUser ? 'bg-slate-900 text-white' : 'text-slate-600 hover:text-slate-900'
                 }`}
                 title="Ver como visitante público"
               >
@@ -102,7 +102,7 @@ export default function Navbar() {
                 id="role-switch-user"
                 onClick={() => switchRole('user')}
                 className={`px-2 py-0.5 rounded text-[11px] font-medium transition-colors ${
-                  user?.role === 'user'
+                  currentUser?.role === 'user'
                     ? 'bg-slate-900 text-white'
                     : 'text-slate-600 hover:text-slate-900'
                 }`}
@@ -114,7 +114,7 @@ export default function Navbar() {
                 id="role-switch-admin"
                 onClick={() => switchRole('admin')}
                 className={`px-2 py-0.5 rounded text-[11px] font-medium transition-colors ${
-                  user?.role === 'admin'
+                  currentUser?.role === 'admin'
                     ? 'bg-yellow-400 text-slate-950 font-bold'
                     : 'text-slate-600 hover:text-slate-900'
                 }`}
@@ -125,7 +125,7 @@ export default function Navbar() {
             </div>
 
             {/* Auth / Account button */}
-            {user ? (
+            {currentUser ? (
               <div className="relative">
                 <button
                   id="user-menu-btn"
@@ -133,10 +133,10 @@ export default function Navbar() {
                   className="flex items-center gap-2 pl-2 pr-3 py-1.5 rounded-full bg-slate-100 hover:bg-slate-200 border border-slate-200 text-sm font-medium text-slate-800 transition-colors"
                 >
                   <div className="w-6 h-6 rounded-full bg-slate-900 text-white flex items-center justify-center text-xs font-bold">
-                    {user.name.charAt(0)}
+                    {currentUser.name.charAt(0)}
                   </div>
-                  <span className="max-w-[100px] truncate">{user.name.split(' ')[0]}</span>
-                  {user.role === 'admin' && (
+                  <span className="max-w-[100px] truncate">{currentUser.name.split(' ')[0]}</span>
+                  {currentUser.role === 'admin' && (
                     <span className="bg-yellow-400 text-slate-950 text-[10px] font-bold px-1.5 py-0.5 rounded">
                       ADMIN
                     </span>
@@ -147,14 +147,14 @@ export default function Navbar() {
                 {userDropdownOpen && (
                   <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-xl border border-slate-100 py-1.5 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
                     <div className="px-4 py-2 border-b border-slate-100">
-                      <p className="text-xs font-semibold text-slate-900 truncate">{user.name}</p>
-                      <p className="text-[11px] text-slate-500 truncate">{user.email}</p>
+                      <p className="text-xs font-semibold text-slate-900 truncate">{currentUser.name}</p>
+                      <p className="text-[11px] text-slate-500 truncate">{currentUser.email}</p>
                       <span className="inline-block mt-1 text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded bg-slate-100 text-slate-700">
-                        Rol: {user.role}
+                        Rol: {currentUser.role}
                       </span>
                     </div>
 
-                    {user.role === 'admin' ? (
+                    {currentUser.role === 'admin' ? (
                       <Link
                         href="/admin"
                         onClick={() => setUserDropdownOpen(false)}
@@ -176,7 +176,7 @@ export default function Navbar() {
                       </Link>
                     )}
 
-                    {user.role === 'admin' && (
+                    {currentUser.role === 'admin' && (
                       <Link
                         href="/dashboard"
                         onClick={() => setUserDropdownOpen(false)}
@@ -265,7 +265,7 @@ export default function Navbar() {
                     setMobileMenuOpen(false);
                   }}
                   className={`py-1 text-xs rounded font-medium text-center ${
-                    !user ? 'bg-slate-900 text-white' : 'bg-white text-slate-700 border border-slate-200'
+                    !currentUser ? 'bg-slate-900 text-white' : 'bg-white text-slate-700 border border-slate-200'
                   }`}
                 >
                   Público
@@ -276,7 +276,7 @@ export default function Navbar() {
                     setMobileMenuOpen(false);
                   }}
                   className={`py-1 text-xs rounded font-medium text-center ${
-                    user?.role === 'user'
+                    currentUser?.role === 'user'
                       ? 'bg-slate-900 text-white'
                       : 'bg-white text-slate-700 border border-slate-200'
                   }`}
@@ -289,7 +289,7 @@ export default function Navbar() {
                     setMobileMenuOpen(false);
                   }}
                   className={`py-1 text-xs rounded font-medium text-center ${
-                    user?.role === 'admin'
+                    currentUser?.role === 'admin'
                       ? 'bg-yellow-400 text-slate-950 font-bold'
                       : 'bg-white text-slate-700 border border-slate-200'
                   }`}
@@ -299,9 +299,9 @@ export default function Navbar() {
               </div>
             </div>
 
-            {user ? (
+            {currentUser ? (
               <div className="space-y-2">
-                {user.role === 'admin' ? (
+                {currentUser.role === 'admin' ? (
                   <Link
                     href="/admin"
                     onClick={() => setMobileMenuOpen(false)}
@@ -327,7 +327,7 @@ export default function Navbar() {
                   }}
                   className="w-full py-2 text-sm text-red-600 font-medium text-center"
                 >
-                  Cerrar sesión ({user.email})
+                  Cerrar sesión ({currentUser.email})
                 </button>
               </div>
             ) : (

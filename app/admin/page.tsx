@@ -45,7 +45,10 @@ export default function AdminPage() {
   const fetchLeads = async () => {
     setLoadingLeads(true);
     try {
-      const res = await fetch('/app/api/leads');
+      const res = await fetch('/api/leads');
+      if (!res.ok) {
+        throw new Error(`HTTP error ${res.status}`);
+      }
       const data = await res.json();
       if (data.success && data.leads) {
         setLeads(data.leads);
@@ -60,8 +63,11 @@ export default function AdminPage() {
   useEffect(() => {
     let active = true;
     if (user?.role === 'admin') {
-      fetch('/app/api/leads')
-        .then((res) => res.json())
+      fetch('/api/leads')
+        .then((res) => {
+          if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+          return res.json();
+        })
         .then((data) => {
           if (active && data.success && data.leads) {
             setLeads(data.leads);
@@ -80,11 +86,12 @@ export default function AdminPage() {
 
   const handleStatusChange = async (leadId: string, newStatus: LeadStatus) => {
     try {
-      const res = await fetch('/app/api/leads', {
+      const res = await fetch('/api/leads', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: leadId, status: newStatus }),
       });
+      if (!res.ok) throw new Error(`HTTP error ${res.status}`);
       const data = await res.json();
       if (data.success) {
         setLeads((prev) =>
@@ -104,7 +111,7 @@ export default function AdminPage() {
     if (!selectedLead) return;
     setSavingNotes(true);
     try {
-      const res = await fetch('/app/api/leads', {
+      const res = await fetch('/api/leads', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -113,6 +120,7 @@ export default function AdminPage() {
           notes: leadNotes,
         }),
       });
+      if (!res.ok) throw new Error(`HTTP error ${res.status}`);
       const data = await res.json();
       if (data.success) {
         setLeads((prev) =>
@@ -131,9 +139,10 @@ export default function AdminPage() {
   const handleDeleteLead = async (leadId: string) => {
     if (!confirm('¿Estás seguro de que deseas eliminar este lead?')) return;
     try {
-      const res = await fetch(`/app/api/leads?id=${leadId}`, {
+      const res = await fetch(`/api/leads?id=${leadId}`, {
         method: 'DELETE',
       });
+      if (!res.ok) throw new Error(`HTTP error ${res.status}`);
       const data = await res.json();
       if (data.success) {
         setLeads((prev) => prev.filter((l) => l.id !== leadId));

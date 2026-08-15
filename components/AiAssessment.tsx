@@ -53,7 +53,7 @@ export default function AiAssessment({ onApplyToForm }: { onApplyToForm?: (messa
     setResult(null);
 
     try {
-      const res = await fetch('/app/api/audit', {
+      const res = await fetch('/api/audit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -63,6 +63,10 @@ export default function AiAssessment({ onApplyToForm }: { onApplyToForm?: (messa
           currentTools,
         }),
       });
+
+      if (!res.ok) {
+        throw new Error(`HTTP error ${res.status}`);
+      }
 
       const data = await res.json();
       if (data.success && data.diagnosis) {

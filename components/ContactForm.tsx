@@ -47,7 +47,7 @@ export default function ContactForm({ initialService = '', initialMessage = '' }
     setLoading(true);
 
     try {
-      const response = await fetch('/app/api/leads', {
+      const response = await fetch('/api/leads', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
