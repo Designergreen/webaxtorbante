@@ -1,0 +1,6 @@
+{
+  "name": "Axel Torbante - Consultor en IA",
+  "description": "Sitio web y plataforma de consultoría de Axel Torbante, especialista en Inteligencia Artificial y automatización de procesos para empresas y emprendedores.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
